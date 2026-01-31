@@ -1,18 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa">
 <head>
-    <title>تست سرعت سایت</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بازی مار</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    color: white;
+    font-family: sans-serif;
+}
+
+canvas {
+    background: black;
+    border: 2px solid #555;
+}
+
+.controls {
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: 60px 60px 60px;
+    grid-template-rows: 60px 60px 60px;
+    gap: 10px;
+}
+
+.btn {
+    background: #ddd;
+    color: black;
+    font-size: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.btn:active {
+    background: #aaa;
+}
+
+.empty {
+    visibility: hidden;
+}
+
+@media (min-width: 768px) {
+    .controls {
+        display: none;
+    }
+}
+</style>
 </head>
+
 <body>
-    <h1>سایت با GitHub Pages تست شد!</h1>
-    <p>سرعت بارگذاری: <span id="speed"></span></p>
-    <script>
-        // تست سرعت ساده
-        const startTime = performance.now();
-        setTimeout(() => {
-            const endTime = performance.now();
-            document.getElementById('speed').innerText = (endTime - startTime).toFixed(2) + "ms";
-        }, 100);
-    </script>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div class="controls">
+    <div class="empty"></div>
+    <div class="btn" data-dir="up">↑</div>
+    <div class="empty"></div>
+
+    <div class="btn" data-dir="left">←</div>
+    <div class="empty"></div>
+    <div class="btn" data-dir="right">→</div>
+
+    <div class="empty"></div>
+    <div class="btn" data-dir="down">↓</div>
+    <div class="empty"></div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const grid = 20;
+const count = 20;
+
+let snake = [{x:10,y:10}];
+let food = {x:5,y:5};
+let dir = "right";
+let nextDir = "right";
+let speed = 150;
+let last = 0;
+let alive = true;
+
+function changeDirection(d){
+    if (
+        (dir==="up" && d==="down") ||
+        (dir==="down" && d==="up") ||
+        (dir==="left" && d==="right") ||
+        (dir==="right" && d==="left")
+    ) return;
+    nextDir = d;
+}
+
+document.addEventListener("keydown", e=>{
+    if(e.key==="ArrowUp") changeDirection("up");
+    if(e.key==="ArrowDown") changeDirection("down");
+    if(e.key==="ArrowLeft") changeDirection("left");
+    if(e.key==="ArrowRight") changeDirection("right");
+});
+
+document.querySelectorAll(".btn").forEach(b=>{
+    const d = b.dataset.dir;
+    b.addEventListener("touchstart", e=>{
+        e.preventDefault();
+        changeDirection(d);
+    });
+    b.addEventListener("mousedown", ()=>changeDirection(d));
+});
+
+function spawnFood(){
+    let f;
+    do{
+        f={
+            x:Math.floor(Math.random()*count),
+            y:Math.floor(Math.random()*count)
+        };
+    }while(snake.some(s=>s.x===f.x && s.y===f.y));
+    food=f;
+}
+
+function update(){
+    if(!alive) return;
+    dir = nextDir;
+
+    const head = {...snake[0]};
+    if(dir==="up") head.y--;
+    if(dir==="down") head.y++;
+    if(dir==="left") head.x--;
+    if(dir==="right") head.x++;
+
+    if(head.x<0||head.y<0||head.x>=count||head.y>=count){
+        alive=false;
+        alert("باختی!");
+        location.reload();
+        return;
+    }
+
+    if(snake.some(s=>s.x===head.x && s.y===head.y)){
+        alive=false;
+        alert("باختی!");
+        location.reload();
+        return;
+    }
+
+    snake.unshift(head);
+
+    if(head.x===food.x && head.y===food.y){
+        spawnFood();
+    }else{
+        snake.pop();
+    }
+}
+
+function draw(){
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,400,400);
+
+    snake.forEach((s,i)=>{
+        ctx.fillStyle = i===0 ? "#00cc00" : "#00ff00";
+        ctx.fillRect(s.x*grid, s.y*grid, grid-2, grid-2);
+    });
+
+    ctx.fillStyle="red";
+    ctx.fillRect(food.x*grid, food.y*grid, grid-2, grid-2);
+}
+
+function loop(t){
+    if(t-last>speed){
+        update();
+        draw();
+        last=t;
+    }
+    requestAnimationFrame(loop);
+}
+
+spawnFood();
+requestAnimationFrame(loop);
+</script>
+
 </body>
 </html>
